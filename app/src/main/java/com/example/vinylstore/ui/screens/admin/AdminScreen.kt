@@ -198,14 +198,15 @@ fun AdminScreen(navController: NavHostController, viewModel: MainViewModel) {
                         return@Button
                     }
 
-                    val product = Product(
+                    val product = Product(  // ← ИЗМЕНЕНО: imageUrls → imageUrl + imageUrl2
                         name = name,
                         artist = artist,
                         genre = genre,
                         year = year.toIntOrNull() ?: 0,
                         price = price.toDoubleOrNull() ?: 0.0,
                         description = description,
-                        imageUrls = urls,
+                        imageUrl = urls.getOrNull(0) ?: "",
+                        imageUrl2 = urls.getOrNull(1) ?: "",
                         format = format,
                         condition = condition,
                         isNew = isNew
