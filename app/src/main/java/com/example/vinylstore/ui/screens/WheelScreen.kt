@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
@@ -46,6 +48,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,6 +66,12 @@ import kotlin.random.Random
 fun WheelScreen(navController: NavHostController, viewModel: MainViewModel) {
     val products by viewModel.products.collectAsState()
     val scope = rememberCoroutineScope()
+
+    // Адаптивный размер колеса: минимум из ширины экрана и высоты
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val screenHeight = configuration.screenHeightDp.dp
+    val wheelSize = minOf(screenWidth * 0.75f, screenHeight * 0.4f, 320.dp)
 
     val wheelItems = remember(products) {
         if (products.size >= 8) products.shuffled().take(8) else products
@@ -102,13 +111,16 @@ fun WheelScreen(navController: NavHostController, viewModel: MainViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .verticalScroll(rememberScrollState()) // ← ДОБАВЛЕНО: прокрутка!
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(12.dp) // ← ИЗМЕНЕНО: вместо Spacer
         ) {
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = "\uD83C\uDFB2 Испытай удачу!",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineSmall, // ← ИЗМЕНЕНО: headlineMedium → headlineSmall
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
@@ -116,13 +128,12 @@ fun WheelScreen(navController: NavHostController, viewModel: MainViewModel) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
+            // Колесо адаптивного размера
             Box(
-                modifier = Modifier.size(320.dp),
+                modifier = Modifier.size(wheelSize),
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -137,13 +148,13 @@ fun WheelScreen(navController: NavHostController, viewModel: MainViewModel) {
 
                 Canvas(
                     modifier = Modifier
-                        .size(300.dp)
+                        .size(wheelSize - 20.dp)
                         .rotate(rotation.value)
                 ) {
                     val centerX = size.width / 2
                     val centerY = size.height / 2
                     val radius = size.minDimension / 2
-                    val sectorAngle = 360f / wheelItems.size
+                    val sectorAngle = 360f / wheelItems.size.coerceAtLeast(1)
 
                     wheelItems.forEachIndexed { index, _ ->
                         val startAngle = index * sectorAngle - 90f
@@ -175,13 +186,15 @@ fun WheelScreen(navController: NavHostController, viewModel: MainViewModel) {
                     )
                 }
 
-                Canvas(modifier = Modifier.size(320.dp)) {
+                // Стрелка-указатель (адаптивный размер)
+                Canvas(modifier = Modifier.fillMaxSize()) {
                     val centerX = size.width / 2
-                    val topY = 10f
+                    val topY = size.height * 0.05f
+                    val arrowSize = size.minDimension * 0.08f
                     val trianglePath = Path().apply {
                         moveTo(centerX, topY)
-                        lineTo(centerX - 20f, topY + 40f)
-                        lineTo(centerX + 20f, topY + 40f)
+                        lineTo(centerX - arrowSize, topY + arrowSize * 2)
+                        lineTo(centerX + arrowSize, topY + arrowSize * 2)
                         close()
                     }
                     drawPath(
@@ -190,8 +203,6 @@ fun WheelScreen(navController: NavHostController, viewModel: MainViewModel) {
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(32.dp))
 
             Button(
                 onClick = {
@@ -215,7 +226,7 @@ fun WheelScreen(navController: NavHostController, viewModel: MainViewModel) {
                 enabled = !isSpinning && wheelItems.isNotEmpty(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .height(52.dp), // ← ИЗМЕНЕНО: 56 → 52
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = CircleShape
             ) {
@@ -230,9 +241,11 @@ fun WheelScreen(navController: NavHostController, viewModel: MainViewModel) {
                     text = "\u23F3 Загрузка пластинок...",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
+
+            Spacer(modifier = Modifier.height(16.dp)) // Отступ снизу для прокрутки
         }
     }
 
